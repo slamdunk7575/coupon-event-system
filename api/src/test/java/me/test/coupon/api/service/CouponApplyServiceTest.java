@@ -37,7 +37,10 @@ class CouponApplyServiceTest {
     }
 
 
-    // 문제점
+    //==> 결과
+    // expected: 100L
+    // but was: 119L
+    //==> 문제점
     // Race Condition: 두개 이상의 쓰레드(여러명)가 공유자원(쿠폰)에 access 하고 동시에 작업을 수행하려고 할때 발생함
     @DisplayName("여러명이 이벤트에 응모하고 쿠폰이 여러장 발급되는 것을 확인한다.")
     @Test
