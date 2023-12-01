@@ -36,6 +36,7 @@ public class CouponApplyService {
     // Single-Thread 로 동작하여 어떤 시점에 쿠폰에 접근할 수 있는 Thread 를 1개로 제한하여
     // Race Condition 해결 할 수 있을뿐만 아니라
     // incr 명령어는 성능도 빠름 (incr: 숫자를 1 증가시키고 증가된 값을 리턴하는 명령어)
+    // 참고: flushall 명령어 -? Redis 키 모두 지우기
 
     public void apply(Long userId) {
         // long couponCount = couponRepository.count();
