@@ -1,10 +1,12 @@
 package me.test.coupon.api.service;
 
 import me.test.coupon.api.repository.CouponRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.redis.core.RedisTemplate;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -21,6 +23,16 @@ class CouponApplyServiceTest {
     @Autowired
     private CouponRepository couponRepository;
 
+    @Autowired
+    private RedisTemplate<String, String> redisTemplate;
+
+    @BeforeEach
+    void redis_init() {
+        redisTemplate
+                .getConnectionFactory()
+                .getConnection()
+                .flushAll();
+    }
 
     @DisplayName("한명이 이벤트에 응모하고 쿠폰이 발급되는 것을 확인한다.")
     @Test

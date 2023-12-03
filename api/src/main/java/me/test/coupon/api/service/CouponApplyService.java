@@ -1,6 +1,6 @@
 package me.test.coupon.api.service;
 
-import me.test.coupon.api.domain.Coupon;
+import me.test.coupon.api.producer.CouponCreateProducer;
 import me.test.coupon.api.repository.CouponCountRepository;
 import me.test.coupon.api.repository.CouponRepository;
 import org.springframework.stereotype.Service;
@@ -12,10 +12,14 @@ public class CouponApplyService {
 
     private final CouponCountRepository couponCountRepository;
 
+    private final CouponCreateProducer couponCreateProducer;
+
     public CouponApplyService(CouponRepository couponRepository,
-                              CouponCountRepository couponCountRepository) {
+                              CouponCountRepository couponCountRepository,
+                              CouponCreateProducer couponCreateProducer) {
         this.couponRepository = couponRepository;
         this.couponCountRepository = couponCountRepository;
+        this.couponCreateProducer = couponCreateProducer;
     }
 
     // Race Condition 해결 방법
@@ -52,7 +56,21 @@ public class CouponApplyService {
     // 10:00 에 10000개의 쿠폰생성 요청이 들어오면 1분에 100개씩 10000개를 생성하기 위해선 100분이 걸림
     // 이후에 주문생성, 회원가입 요청은 100분 이후에 처리됨
     // timeout 설정이 없다면 느리게라도 처리가 되겠지만
-    // 대부분의 서비스는 timeout 설정이 되어있기 때문에 주문생성, 회원가입 요청뿐만 아니라 일부 쿠폰생성도 되지않는 오류발생
+    // 대부분의 서비스는 timeout 설정이 되어있기 때문에 주문생성, 회원가입 요청뿐만 아니라 일부 쿠폰생성도 되지않는 오류 발생
+
+    // 문제해결 (카프카)
+    // Kafka 를 통해 DB 에 요청되는 처리량을 조절(Back Pressure) 하고 부하를 줄임
+    // 동시성 제어는 Redis 를 통해서 처리
+
+    // 예: 컨슈머는 1개밖에 없고 api 에서 '토픽'에 1초에 1000개의 데이터를 추가했다고 가정
+    // 카프카는 '토픽'이라는 곳에 데이터를 추가하고 컨슈머에서 차례대로 가져가서 처리를 하게됨
+    // 컨슈머는 토픽에 있는 데이터 1개를 가져와서 모든 처리를 하고 (쿠폰발급) 다음 데이터를 가져옴
+    // 컨슈머에서 1개의 데이터를 처리하는데 1초가 걸린다고 할 때
+    // api 에서 토픽에 1초에 1000개의 데이터를 보내도 컨슈머에서는 1초에 1개씩 처리하기 때문에 1000초 후에 모든 데이터를 처리하게됨
+    //
+    // 이러한 특성을 이용하여 api 에서 직접 쿠폰을 발급한다면 1초에 1000 번의 쿠폰생성 요청이 DB에 직접 요청을 하겠지만
+    // 카프카를 사용한다면 1초에 1번만 갈 수 있게 조절함
+    // 이것을 처리량 조절이라고함
     public void apply(Long userId) {
         // long couponCount = couponRepository.count();
         long couponCount = couponCountRepository.increment();
@@ -61,6 +79,7 @@ public class CouponApplyService {
             return;
         }
 
-        couponRepository.save(new Coupon(userId));
+        // couponRepository.save(new Coupon(userId));
+        couponCreateProducer.create(userId);
     }
 }
