@@ -75,6 +75,18 @@ class CouponApplyServiceTest {
         }
 
         countDownLatch.await();
+
+        // 테스트 케이스가 실패하는 이유 -> 데이터 처리가 실시간이 아니기 때문
+        // Producer 가 토픽에 메시지를 전송 -> 토픽 -> Consumer 는 데이터 수신 상태였다가
+        // 토픽에 메시지가 전송되면 데이터를 처리 (쿠폰생성)
+        // 그 사이에 테스트 케이스가 종료되기 때문에 테스트가 실패하는것
+        // 예:
+        // expected: 100L
+        // but was: 32L
+
+        // 임의로 Thread.sleep 을 주어서 실제로 쿠폰이 100개 생성되는지 확인
+        Thread.sleep(10000);
+
         long couponCount = couponRepository.count();
 
         // then
