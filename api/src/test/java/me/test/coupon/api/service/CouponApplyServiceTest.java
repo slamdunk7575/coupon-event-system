@@ -92,4 +92,35 @@ class CouponApplyServiceTest {
         // then
         assertThat(couponCount).isEqualTo(100);
     }
+
+    @DisplayName("User 당 오직 하나의 쿠폰만 발급되는 것을 확인한다.(추가 요구사항)")
+    @Test
+    void apply_one_coupon_per_user() throws InterruptedException {
+        // given
+        int threadCount = 1000;
+        ExecutorService executorService = Executors.newFixedThreadPool(32);
+        CountDownLatch countDownLatch = new CountDownLatch(threadCount);
+
+        // when
+        // 한명의 유저(UserId: 1L)가 1000번의 쿠폰생성 요청을 보내도 오직 1개 쿠폰만 생성 확인
+        for (int i = 0; i < threadCount; i++) {
+            long userId = i;
+            executorService.submit(() -> {
+                try {
+                    couponApplyService.apply(1L);
+                } finally {
+                    countDownLatch.countDown();
+                }
+            });
+        }
+
+        countDownLatch.await();
+
+        Thread.sleep(10000);
+
+        long couponCount = couponRepository.count();
+
+        // then
+        assertThat(couponCount).isEqualTo(1);
+    }
 }

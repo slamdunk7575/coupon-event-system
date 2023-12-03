@@ -1,6 +1,7 @@
 package me.test.coupon.api.service;
 
 import me.test.coupon.api.producer.CouponCreateProducer;
+import me.test.coupon.api.repository.AppliedUserRepository;
 import me.test.coupon.api.repository.CouponCountRepository;
 import me.test.coupon.api.repository.CouponRepository;
 import org.springframework.stereotype.Service;
@@ -14,12 +15,15 @@ public class CouponApplyService {
 
     private final CouponCreateProducer couponCreateProducer;
 
+    private final AppliedUserRepository appliedUserRepository;
+
     public CouponApplyService(CouponRepository couponRepository,
                               CouponCountRepository couponCountRepository,
-                              CouponCreateProducer couponCreateProducer) {
+                              CouponCreateProducer couponCreateProducer, AppliedUserRepository appliedUserRepository) {
         this.couponRepository = couponRepository;
         this.couponCountRepository = couponCountRepository;
         this.couponCreateProducer = couponCreateProducer;
+        this.appliedUserRepository = appliedUserRepository;
     }
 
     // Race Condition 해결 방법
@@ -72,6 +76,13 @@ public class CouponApplyService {
     // 카프카를 사용한다면 1초에 1번만 갈 수 있게 조절함
     // 이것을 처리량 조절이라고함
     public void apply(Long userId) {
+
+        Long apply = appliedUserRepository.add(userId);
+
+        if (apply != 1) {
+            return;
+        }
+
         // long couponCount = couponRepository.count();
         long couponCount = couponCountRepository.increment();
 
